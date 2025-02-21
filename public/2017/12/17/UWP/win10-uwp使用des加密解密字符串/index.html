@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Win10 UWP使用DES加密解密字符串（自定义密码） | Hexo</title><meta name="author" content="John Doe"><meta name="copyright" content="John Doe"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="在我们开发应用时，一些重要的数据如果以明文的方式保存，自然是很不安全的。因此，我就需要将所保存的账户信息加密以后再保存。微软的官方文档中有这方面的内容，但是采用的是生成随机密钥的形式。我需要的是采用用户自己设置的密码加密和解密内容。一直不知道改怎么实现（个人水平太差），在看到周老师的【WP开发】加密篇：双向加密的时候才知道了具体的操作方法。废话不多说了，直接上最终完成效果。微软的官方文档：http">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Win10 UWP使用DES加密解密字符串（自定义密码）">
+<meta property="og:url" content="http://example.com/2017/12/17/UWP/win10-uwp%E4%BD%BF%E7%94%A8des%E5%8A%A0%E5%AF%86%E8%A7%A3%E5%AF%86%E5%AD%97%E7%AC%A6%E4%B8%B2/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="在我们开发应用时，一些重要的数据如果以明文的方式保存，自然是很不安全的。因此，我就需要将所保存的账户信息加密以后再保存。微软的官方文档中有这方面的内容，但是采用的是生成随机密钥的形式。我需要的是采用用户自己设置的密码加密和解密内容。一直不知道改怎么实现（个人水平太差），在看到周老师的【WP开发】加密篇：双向加密的时候才知道了具体的操作方法。废话不多说了，直接上最终完成效果。微软的官方文档：http">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/img/butterfly-icon.png">
+<meta property="article:published_time" content="2017-12-16T18:51:32.000Z">
+<meta property="article:modified_time" content="2025-02-21T10:54:54.011Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="UWP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/butterfly-icon.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Win10 UWP使用DES加密解密字符串（自定义密码）",
+  "url": "http://example.com/2017/12/17/UWP/win10-uwp%E4%BD%BF%E7%94%A8des%E5%8A%A0%E5%AF%86%E8%A7%A3%E5%AF%86%E5%AD%97%E7%AC%A6%E4%B8%B2/",
+  "image": "http://example.com/img/butterfly-icon.png",
+  "datePublished": "2017-12-16T18:51:32.000Z",
+  "dateModified": "2025-02-21T10:54:54.011Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "John Doe",
+      "url": "http://example.com/"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2017/12/17/UWP/win10-uwp%E4%BD%BF%E7%94%A8des%E5%8A%A0%E5%AF%86%E8%A7%A3%E5%AF%86%E5%AD%97%E7%AC%A6%E4%B8%B2/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Win10 UWP使用DES加密解密字符串（自定义密码）',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Hexo</span></a><a class="nav-page-title" href="/"><span class="site-name">Win10 UWP使用DES加密解密字符串（自定义密码）</span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">Win10 UWP使用DES加密解密字符串（自定义密码）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2017-12-16T18:51:32.000Z" title="Created 2017-12-17 02:51:32">2017-12-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2025-02-21T10:54:54.011Z" title="Updated 2025-02-21 18:54:54">2025-02-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BC%80%E5%8F%91%E7%AC%94%E8%AE%B0/">开发笔记</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>在我们开发应用时，一些重要的数据如果以明文的方式保存，自然是很不安全的。因此，我就需要将所保存的账户信息加密以后再保存。微软的官方文档中有这方面的内容，但是采用的是生成随机密钥的形式。我需要的是采用用户自己设置的密码加密和解密内容。一直不知道改怎么实现（个人水平太差），在看到周老师的<a target="_blank" rel="noopener" href="http://www.cnblogs.com/tcjiaan/p/4303918.html">【WP开发】加密篇：双向加密</a>的时候才知道了具体的操作方法。废话不多说了，直接上最终完成效果。<br>微软的官方文档：<a target="_blank" rel="noopener" href="https://msdn.microsoft.com/library/windows/apps/br241537">https://msdn.microsoft.com/library/windows/apps/br241537 </a> <a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/windows/uwp/security/cryptographic-keys">https://docs.microsoft.com/zh-cn/windows/uwp/security/cryptographic-keys</a> <a target="_blank" rel="noopener" href="http://www.yzj0308.com/wp-content/uploads/2017/12/Des-SampleDemo-.gif"><img src="http://www.yzj0308.com/wp-content/uploads/2017/12/Des-SampleDemo--1024x765.gif"></a> 加密需要Key和IV两个值，他们都是数组的形式Byte[]。我写成了一个类，方便调用。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">using</span> System; </span><br><span class="line"> <span class="keyword">using</span> System.Collections.Generic; </span><br><span class="line"> <span class="keyword">using</span> System.Linq; </span><br><span class="line"> <span class="keyword">using</span> System.Text; </span><br><span class="line"> <span class="keyword">using</span> System.Threading.Tasks; </span><br><span class="line"> <span class="keyword">using</span> Windows.Security.Cryptography; </span><br><span class="line"> <span class="keyword">using</span> Windows.Security.Cryptography.Core; </span><br><span class="line"> <span class="keyword">using</span> Windows.Storage.Streams; </span><br><span class="line"> <span class="keyword">namespace</span> <span class="title">Des</span>-<span class="title">Sample</span> </span><br><span class="line"> &#123; </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">DESCBCHelper</span> </span><br><span class="line">   &#123; </span><br><span class="line">     <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">EnPassword</span>(<span class="params"><span class="built_in">string</span> <span class="keyword">value</span></span>)</span></span><br><span class="line">      &#123; </span><br><span class="line">        <span class="built_in">string</span> _password = AppSettingsHelper.GetSettings(<span class="string">&quot;password&quot;</span>).ToString(); </span><br><span class="line">        <span class="keyword">value</span> = DESCECEncryption(<span class="keyword">value</span>, _password, _password); <span class="keyword">return</span> <span class="keyword">value</span>; </span><br><span class="line">      &#125; </span><br><span class="line"></span><br><span class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">DePassword</span>(<span class="params"><span class="built_in">string</span> <span class="keyword">value</span></span>)</span> &#123; </span><br><span class="line">        <span class="built_in">string</span> _password = AppSettingsHelper.GetSettings(<span class="string">&quot;password&quot;</span>).ToString(); </span><br><span class="line">        <span class="keyword">value</span> = DESCBCDecryption(<span class="keyword">value</span>, _password, _password); </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">value</span>; </span><br><span class="line">      &#125; </span><br><span class="line">      <span class="comment">//加密数据</span></span><br><span class="line">      <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">DESCECEncryption</span>(<span class="params"><span class="built_in">string</span> strMsg,<span class="built_in">string</span> iv,<span class="built_in">string</span> key</span>)</span> </span><br><span class="line">      &#123; </span><br><span class="line">        <span class="comment">//处理strMsg,不能为空，所以加一个空格。 </span></span><br><span class="line">        <span class="keyword">if</span> (strMsg == <span class="string">&quot;&quot;</span>) &#123; strMsg = <span class="string">&quot; &quot;</span>; &#125; </span><br><span class="line">        <span class="comment">//加密模式，选择带Pkcs7的编码方式会自动补全所缺的字节，否则加密内容必须是8字节的倍数。 </span></span><br><span class="line">        String strAlgName = SymmetricAlgorithmNames.DesCbcPkcs7; </span><br><span class="line">        <span class="comment">//把要加密的字符串进行UTF8编码并写入缓冲区</span></span><br><span class="line">        IBuffer buffMsg = CryptographicBuffer.ConvertStringToBinary(strMsg, BinaryStringEncoding.Utf8); SymmetricKeyAlgorithmProvider objAlg = SymmetricKeyAlgorithmProvider.OpenAlgorithm(strAlgName); </span><br><span class="line">        <span class="comment">//处理key </span></span><br><span class="line">        <span class="keyword">if</span> (key.Length &lt; <span class="number">8</span>) </span><br><span class="line">        &#123; </span><br><span class="line">          key = key + <span class="string">&quot; &quot;</span>; </span><br><span class="line">        &#125; </span><br><span class="line">        <span class="built_in">byte</span>\[\] byteKey = Encoding.UTF8.GetBytes(key); </span><br><span class="line">        IBuffer buffKey = CryptographicBuffer.CreateFromByteArray(byteKey); CryptographicKey cryKey = objAlg.CreateSymmetricKey(buffKey); </span><br><span class="line">        <span class="comment">//处理iv，iv必须大于8 </span></span><br><span class="line">        <span class="keyword">if</span> (iv.Length &lt; <span class="number">8</span>) </span><br><span class="line">        &#123; </span><br><span class="line">          iv = iv + <span class="string">&quot; &quot;</span>; </span><br><span class="line">        &#125; </span><br><span class="line">        <span class="built_in">byte</span>[] byteIV = Encoding.UTF8.GetBytes(iv); IBuffer buffIV = CryptographicBuffer.CreateFromByteArray(byteIV); </span><br><span class="line">        <span class="comment">//加密字符串 </span></span><br><span class="line">        IBuffer buffEncrypt = CryptographicEngine.Encrypt(cryKey, buffMsg,buffIV); </span><br><span class="line">        <span class="comment">//将缓冲区已加密的字符串转换为</span></span><br><span class="line">        Base64 <span class="built_in">string</span> base64Msg = CryptographicBuffer.EncodeToBase64String(buffEncrypt); <span class="keyword">return</span> base64Msg; </span><br><span class="line">      &#125; </span><br><span class="line">      <span class="comment">//解密数据 </span></span><br><span class="line">      <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">DESCBCDecryption</span>(<span class="params"><span class="built_in">string</span> strMsg, <span class="built_in">string</span> iv, <span class="built_in">string</span> key</span>)</span> </span><br><span class="line">      &#123; </span><br><span class="line">        <span class="comment">//加密模式 </span></span><br><span class="line">        String strAlgName = SymmetricAlgorithmNames.DesCbcPkcs7; SymmetricKeyAlgorithmProvider objAlg = SymmetricKeyAlgorithmProvider.OpenAlgorithm(strAlgName); </span><br><span class="line">        <span class="comment">//把Base64转换为string，并写入缓冲区 </span></span><br><span class="line">        IBuffer buffMsg = CryptographicBuffer.DecodeFromBase64String(strMsg); </span><br><span class="line">        <span class="comment">//处理key </span></span><br><span class="line">        <span class="keyword">if</span> (key.Length &lt; <span class="number">8</span>) &#123; key = key + <span class="string">&quot; &quot;</span>; &#125; </span><br><span class="line">        <span class="built_in">byte</span>[] byteKey = Encoding.UTF8.GetBytes(key); IBuffer buffKey = CryptographicBuffer.CreateFromByteArray(byteKey); CryptographicKey cryKey = objAlg.CreateSymmetricKey(buffKey); </span><br><span class="line">        <span class="comment">//处理iv //iv必须大于8 </span></span><br><span class="line">        <span class="keyword">if</span> (iv.Length &lt; <span class="number">8</span>) &#123; iv = iv + <span class="string">&quot; &quot;</span>; &#125; </span><br><span class="line">        <span class="built_in">byte</span>[] byteIV = Encoding.UTF8.GetBytes(iv); IBuffer buffIV = CryptographicBuffer.CreateFromByteArray(byteIV); </span><br><span class="line">        <span class="comment">//解密 </span></span><br><span class="line">        IBuffer buffDecrypted = CryptographicEngine.Decrypt(cryKey, buffMsg, buffIV); <span class="built_in">string</span> result = CryptographicBuffer.ConvertBinaryToString(BinaryStringEncoding.Utf8, buffDecrypted); <span class="keyword">return</span> result; </span><br><span class="line">        &#125; </span><br><span class="line">    &#125; </span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+<p>其中：AppSettingsHelper是我写的一个存储本地设置的帮助类。 需要注意的点：</p>
+<ul>
+<li>加密用的密码Key和IV长度都必须大于8，否则无法加密。我的处理方法不具有通用性（我获取的密码是大于等于6位的），或者干脆可以限制密码长度不小于8.</li>
+<li>需要加密的内容不能为空。</li>
+<li>为了演示方便我把key和Iv用了相同的值，实际操作中不要使用相同的值，增加安全性。</li>
+</ul>
+<p>调用方法： </p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//加密</span></span><br><span class="line"><span class="built_in">string</span> result = DESCBCHelper.EnPassword(tb1.Text);  </span><br><span class="line"><span class="comment">//解密</span></span><br><span class="line"><span class="built_in">string</span> result = DESCBCHelper.DePassword(resultTB.Text);</span><br></pre></td></tr></table></figure>
+<p>DEMO下载： </p>
+<p>OneDrive链接：<a target="_blank" rel="noopener" href="https://1drv.ms/u/s!ApMNS_xXtxUkmcQehBskSO2iq1aFeg">Des-Sample</a> </p>
+<p>百度云链接：<a href="%22http://pan.baidu.com/s/1NjSo-1ikbBD7LSvEzVc6tA">Des-Sample</a> 密码：xkgw”</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="http://example.com">John Doe</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="http://example.com/2017/12/17/UWP/win10-uwp%E4%BD%BF%E7%94%A8des%E5%8A%A0%E5%AF%86%E8%A7%A3%E5%AF%86%E5%AD%97%E7%AC%A6%E4%B8%B2/">http://example.com/2017/12/17/UWP/win10-uwp%E4%BD%BF%E7%94%A8des%E5%8A%A0%E5%AF%86%E8%A7%A3%E5%AF%86%E5%AD%97%E7%AC%A6%E4%B8%B2/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/UWP/">UWP</a></div><div class="post-share"><div class="social-share" data-image="/img/butterfly-icon.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2017/09/08/UWP/uwp%E6%89%8B%E6%9C%BA%E5%90%AF%E5%8A%A8%E5%B1%8F%E5%B9%95%E6%8E%A7%E4%BB%B6%E4%BD%8D%E7%BD%AE%E8%AE%A1%E7%AE%97/" title="Win10 UWP 手机启动屏幕控件位置计算"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">Win10 UWP 手机启动屏幕控件位置计算</div></div><div class="info-2"><div class="info-item-1">在uwp初始屏幕设计中，最后在手机上调试，发现ProgressRing及文字都不显示的问题。最后，经过调试发现是它们的位置超出屏幕的显示范围了，所以才会看不到。下面我将已实际的例子，说明我自己的手机上计算位置方法。 以我的手机Lumia640xl为例，手机的分辨率是1280x720。  所以使用// 检索启动屏幕图像的窗口坐标。 splashImageRect = splash.ImageLocation; 获取的值：X&#x3D;0,Y&#x3D;0,Width &#x3D; 720,Height &#x3D; 1280。经过测试，坐标系的原点在屏幕左上角，以下面的方法计算， 12345void PositionRing()&#123;    splashProgressRing.SetValue(Canvas.LeftProperty, splashImageRect.X + (splashImageRect.Width \* 0.5) - (splashProgressRing.Width \* 0.5));   ...</div></div></div></a><a class="pagination-related" href="/2017/12/17/%E5%85%B3%E4%BA%8E%E6%9C%AC%E4%BA%BA%E5%8F%91%E5%B8%83%E7%9A%84uwp%E7%9A%84%E9%9A%90%E7%A7%81%E7%AD%96%E7%95%A5/" title="关于本人发布的UWP的隐私策略"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">关于本人发布的UWP的隐私策略</div></div><div class="info-2"><div class="info-item-1">隐私策略1、我们不会从您哪里收集任何的个人信息，包括您应用程序的数据或您在应用中共享的信息。 2、第三方比如微软会收集一些应用的使用次数、奔溃等遥测数据，但都不会收集您的个人信息。 3、使用本APP，代表您已同意我们的隐私策略。 4、我们有权随时更改隐私策略，会在本页面更新。最近一次的更新是2018年3月3日。 5、如果您有任何有关此隐私策略 的问题，您可以使用下面的信息与我们联系。 yzj0308@hotmail.com   Privacy policy1, We don’t collect any personal information from you, including the data of your application or the information that you share in the application. 2, third parties such as Microsoft will collect some of the number of applications, such as crashing telemetry data,...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2020/01/03/UWP/align-pivot-header-items-in-center-of-the-page/" title="让Pivot Headers在页面居中"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2020-01-03</div><div class="info-item-2">让Pivot Headers在页面居中</div></div><div class="info-2"><div class="info-item-1">想让所有的Header都在页面居中，于是找到了以下方法。 找到答案的页面 通过修改Pivot的模板中的下面内容。其实就是在模板中搜索“HeaderClipper”，然后把HorizontalContentAlignment=&quot;Stretch&quot;改为HorizontalContentAlignment=&quot;Center&quot;。大功告成。 123&lt;!-- some code before --&gt;&lt;ContentControl x:Name=&quot;HeaderClipper&quot; Grid.Column=&quot;1&quot; HorizontalContentAlignment=&quot;Center&quot; UseSystemFocusVisuals=&quot;True&quot;&gt;&lt;!-- some code before --&gt;</div></div></div></a><a class="pagination-related" href="/2019/03/19/UWP/how-to-change-pivotitem-header-fontsize/" title="如何修改PivotItem的Header的字体大小"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-03-19</div><div class="info-item-2">如何修改PivotItem的Header的字体大小</div></div><div class="info-2"><div class="info-item-1">在开发“开眼UWP”的时候，用到了Piovt，但PivotItem的默认Header字体太大。于是想去修改这个字体的大小。在Piovt的样式文件中找了好久都么找到对应的修改的地方。最后在stackoverflow上找到了下面wp8上用的修改方法。WP8: reduce the pivot page header size? 没想到在UWP上也是通用的。记录方法如下： 123456&lt;Pivot.HeaderTemplate&gt;       &lt;DataTemplate&gt;         &lt;TextBlock Text=&quot;&#123;Binding&#125;&quot;                    FontSize=&quot;20&quot; /&gt;       &lt;/DataTemplate&gt;&lt;/Pivot.HeaderTemplate&gt;  好水… </div></div></div></a><a class="pagination-related" href="/2019/03/15/UWP/how-to-install-uwp-application-offline/" title="如何离线安装UWP应用"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-03-15</div><div class="info-item-2">如何离线安装UWP应用</div></div><div class="info-2"><div class="info-item-1">商店经常性会抽风，好多用户反映无法在商店下载和安装应用。这我也没办法啊，有的用户就回去打1星，然后描述为“垃圾软件，根本无法下载和安装”。真的很无奈，主动联系我的，我就发给他们离线包，但是好多人是不会怎么安装的，所以写这篇文章，记录一下具体的安装过程。 方法一：直接安装首先去设置-更新和安全-开发者选项-开启旁加载应用（可以参考方法2中开启开发者模式） 1、确认证书是否正确安装打开安装包内.msixbundle 后缀的文件  如果显示如下图所示，点安装等待完成即可。  2、证书未安装 右键安装包内.cer...</div></div></div></a><a class="pagination-related" href="/2019/01/25/UWP/how-to-prevent-screen-locks-in-your-uwp-apps/" title="Win10 UWP播放视频时阻止屏幕锁定"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-01-25</div><div class="info-item-2">Win10 UWP播放视频时阻止屏幕锁定</div></div><div class="info-2"><div class="info-item-1">在全屏播放视频时，设备屏幕会自动保持常亮。但是在非全屏状态下，屏幕就会自动关闭。所以我们需要让屏幕在播放状态时，保持常亮。 微软的官方文档里面是有详细的介绍。微软官方文档链接但是完全按照这个代码写会报错。也是真真的醉了～?  解决方法：（按照如下代码就没问题了） 123456789101112131415161718192021222324252627282930313233private async void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)       &#123;           if (sender is MediaPlaybackSession playbackSession &amp;&amp; playbackSession.NaturalVideoHeight != 0)           &#123;               if (playbackSession.PlaybackState ==...</div></div></div></a><a class="pagination-related" href="/2019/12/31/UWP/microsoft-services-store-engagement-crash/" title="Microsoft.Services.Store.Engagement was not included in compilation"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-12-31</div><div class="info-item-2">Microsoft.Services.Store.Engagement was not included in compilation</div></div><div class="info-2"><div class="info-item-1">本文章记录以前遇到的一个和Microsoft.Services.Store.Engagement有关的问题。当时解决后没想到最近有小伙伴又遇到了，所以在此做个记录。 错误Method ‘StoreServicesEngagementManager.GetDefault()’ from assembly ‘Microsoft.Services.Store.Engagement’ was not included in compilation, but was referenced in xxxxxxx. 描述：只要使用**Windows Template Studio 3.3** 以前的版本生成了使用Microsoft.Services.Store.Engagement的代码，上传商店后就会出现这个问题。本地测试正常。 解决方法来自这个issue This is not an issue with using AppCenter. It can affect any app submitted to the store. How to fix this in the code...</div></div></div></a><a class="pagination-related" href="/2019/11/08/UWP/newtonsoft%E7%94%A8%E6%B3%95/" title="Newtonsoft用法"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2019-11-08</div><div class="info-item-2">Newtonsoft用法</div></div><div class="info-2"><div class="info-item-1">参考文章： https://www.cnblogs.com/yanweidie/p/4605212.html </div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">John Doe</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">41</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">30</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2021/04/01/Revit/revit-array-must-biggger-than-2/" title="Revit中阵列必须大于2及条件语句">Revit中阵列必须大于2及条件语句</a><time datetime="2021-04-01T07:13:24.000Z" title="Created 2021-04-01 15:13:24">2021-04-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2020/12/19/Tool/u-pan-install-exsi6-7-install-dsm-6-2-3-ds918/" title="U盘安装Exsi6.7 并安装群晖6.2.3-DS918+">U盘安装Exsi6.7 并安装群晖6.2.3-DS918+</a><time datetime="2020-12-19T12:24:24.000Z" title="Created 2020-12-19 20:24:24">2020-12-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2020/09/23/Tool/%E5%BC%80%E5%90%AF%E4%BB%A3%E7%90%86%E5%90%8E%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8github-desktop/" title="开启代理后如何使用Github Desktop">开启代理后如何使用Github Desktop</a><time datetime="2020-09-23T11:36:32.000Z" title="Created 2020-09-23 19:36:32">2020-09-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2020/04/14/ASP.NET/centos-build-react-project/" title="CentOS部署React项目">CentOS部署React项目</a><time datetime="2020-04-13T17:58:15.000Z" title="Created 2020-04-14 01:58:15">2020-04-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2020/04/02/ASP.NET/centos-nginx-file-sercer/" title="CentOS nginx简单实现文件服务器">CentOS nginx简单实现文件服务器</a><time datetime="2020-04-02T05:12:13.000Z" title="Created 2020-04-02 13:12:13">2020-04-02</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2019 - 2025 By John Doe</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.3.3</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
